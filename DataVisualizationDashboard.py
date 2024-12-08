@@ -8,20 +8,22 @@ from io import StringIO
 @st.cache_data
 def load_github_data(repo_url, file_path):
     """Fetches CSV data from a GitHub repository."""
-    # Clean up the URL inputs to avoid malformed URLs
+    # Strip trailing and leading slashes to avoid malformed URLs
     repo_url = repo_url.rstrip("/")  # Remove trailing slashes
-    file_path = file_path.lstrip("/")  # Remove leading slashes
-    url = f"{repo_url}/raw/main/{file_path}"  # Construct the raw URL
+    file_path = file_path.lstrip("/")  # Ensure path is clean
+    
+    # Correctly build the full URL for accessing raw file
+    url = f"{repo_url}/raw/main/{file_path}"
 
     try:
-        # Attempt to fetch the data from the GitHub repository
+        # Fetch the data from the URL
         response = requests.get(url)
-        response.raise_for_status()  # Raise HTTP errors if any occur
-        return pd.read_csv(StringIO(response.text))  # Parse the CSV response
+        response.raise_for_status()  # Raise HTTP errors if failed
+        return pd.read_csv(StringIO(response.text))  # Read CSV content
     except requests.exceptions.HTTPError as http_err:
         st.error(f"HTTP error occurred: {http_err} (Status code: {response.status_code})")
     except Exception as err:
-        st.error(f"An error occurred: {err}")
+        st.error(f"An unexpected error occurred: {err}")
     return None
 
 
@@ -53,7 +55,7 @@ def main():
 
     # Sidebar for data selection
     st.sidebar.header("Data Source")
-    
+
     # Input fields for custom GitHub repo URL and file path
     custom_repo_url = st.sidebar.text_input(
         "Enter GitHub Repository URL", "https://github.com/"
@@ -67,14 +69,19 @@ def main():
         "Fetch Data from Custom GitHub URL", value=False
     )
 
-    # Option for data upload
+    # Upload file option
     st.sidebar.header("Upload Data")
     uploaded_file = st.sidebar.file_uploader(
         "Upload a file (CSV, JSON, XML, Excel):", type=["csv", "json", "xml", "xls", "xlsx"]
     )
 
-    # Determine which dataset to load based on user interaction
+    # Logic to load data
+    github_data = None
+    uploaded_data = None
+
+    # If the user wants to fetch data from GitHub
     if use_custom_github_data:
+        # Ensure proper repo_url structure without trailing slashes
         st.sidebar.text(f"Repo URL: {custom_repo_url}")
         st.sidebar.text(f"File Path: {custom_file_path}")
         github_data = load_github_data(custom_repo_url, custom_file_path)
@@ -84,9 +91,8 @@ def main():
             st.dataframe(github_data)
         else:
             st.error("Failed to load data from the provided GitHub URL and file path.")
-    else:
-        github_data = None
-
+    
+    # Handle uploaded data
     if uploaded_file is not None:
         uploaded_data = load_uploaded_data(uploaded_file)
         if uploaded_data is not None:
@@ -94,13 +100,11 @@ def main():
             st.dataframe(uploaded_data)
         else:
             st.error("Failed to load uploaded file.")
-    else:
-        uploaded_data = None
 
-    # Determine the active dataset
+    # Set the active dataset
     active_data = uploaded_data if uploaded_data is not None else github_data
 
-    # Visualization logic if data is available
+    # If data is available, allow visualization
     if active_data is not None:
         st.subheader("Data Visualization")
         col1, col2 = st.columns(2)
@@ -112,7 +116,7 @@ def main():
         if x_axis and y_axis:
             st.line_chart(active_data[[x_axis, y_axis]].set_index(x_axis))
     else:
-        st.info("Please upload a file or use a custom GitHub repository link.")
+        st.info("Please upload a file or use a valid GitHub repository link.")
 
 # Run the application
 if __name__ == "__main__":
