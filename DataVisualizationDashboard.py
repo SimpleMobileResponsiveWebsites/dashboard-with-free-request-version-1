@@ -9,12 +9,11 @@ DEFAULT_FILE_PATH = "data/your-data.csv"
 
 # Fetch the data from GitHub
 @st.cache_data
-def load_github_data(repo_url, file_path, token=None):
+def load_github_data(repo_url, file_path):
     """Fetches CSV data from a GitHub repository."""
     url = f"{repo_url}/raw/main/{file_path}"
-    headers = {"Authorization": f"token {token}"} if token else {}
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url)
         response.raise_for_status()
         return pd.read_csv(StringIO(response.text))
     except requests.exceptions.HTTPError as http_err:
@@ -49,13 +48,12 @@ def main():
 
     # Sidebar for data selection
     st.sidebar.header("Data Source")
-    github_token = st.sidebar.text_input("GitHub Token (optional)", type="password")
     use_github_data = st.sidebar.checkbox("Use Default GitHub Data", value=True)
 
     if use_github_data:
         st.sidebar.text(f"Repo URL: {GITHUB_REPO_URL}")
         st.sidebar.text(f"File Path: {DEFAULT_FILE_PATH}")
-        github_data = load_github_data(GITHUB_REPO_URL, DEFAULT_FILE_PATH, github_token)
+        github_data = load_github_data(GITHUB_REPO_URL, DEFAULT_FILE_PATH)
         if github_data is not None:
             st.subheader("Default GitHub Data Preview")
             st.dataframe(github_data)
