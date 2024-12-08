@@ -3,10 +3,6 @@ import pandas as pd
 import requests
 from io import StringIO
 
-# Constants
-GITHUB_REPO_URL = "https://github.com/your-username/your-repo"
-DEFAULT_FILE_PATH = "data/your-data.csv"
-
 # Fetch the data from GitHub
 @st.cache_data
 def load_github_data(repo_url, file_path):
@@ -48,15 +44,18 @@ def main():
 
     # Sidebar for data selection
     st.sidebar.header("Data Source")
-    use_github_data = st.sidebar.checkbox("Use Default GitHub Data", value=True)
+    use_github_data = st.sidebar.checkbox("Use GitHub Data", value=True)
 
     if use_github_data:
-        st.sidebar.text(f"Repo URL: {GITHUB_REPO_URL}")
-        st.sidebar.text(f"File Path: {DEFAULT_FILE_PATH}")
-        github_data = load_github_data(GITHUB_REPO_URL, DEFAULT_FILE_PATH)
-        if github_data is not None:
-            st.subheader("Default GitHub Data Preview")
-            st.dataframe(github_data)
+        repo_url = st.sidebar.text_input("Enter GitHub Repo URL", "https://github.com/your-username/your-repo")
+        file_path = st.sidebar.text_input("Enter File Path", "data/your-data.csv")
+        if repo_url and file_path:
+            github_data = load_github_data(repo_url, file_path)
+            if github_data is not None:
+                st.subheader("GitHub Data Preview")
+                st.dataframe(github_data)
+        else:
+            st.info("Please provide a valid GitHub repository URL and file path.")
     else:
         github_data = None
 
@@ -90,7 +89,7 @@ def main():
         if x_axis and y_axis:
             st.line_chart(active_data[[x_axis, y_axis]].set_index(x_axis))
     else:
-        st.info("Please upload a file or use the default GitHub data.")
+        st.info("Please upload a file or provide a valid GitHub dataset.")
 
 # Run the app
 if __name__ == "__main__":
